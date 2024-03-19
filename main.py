@@ -154,6 +154,7 @@ async def main(module, network):
                for i in range(0, amount_of_accounts, AMOUNT_WALLETS_IN_BATCH)]
     tasks = []
 
+    total_gotten_tokens = 0.0
     for batch in batches:
         for account in batch:
             account_model = AccountInfo(
@@ -165,9 +166,13 @@ async def main(module, network):
             task = prepare_task(module, account_model)
             tasks.append(task)
 
-        await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks)
+        for result in results:
+            total_gotten_tokens += result
+        
         tasks = []
-    logger.success(f'Successfully done for {amount_of_accounts} accounts')
+        
+    logger.success(f'Successfully done for {amount_of_accounts} accounts | claimed: {total_gotten_tokens}')
 
 if __name__ == "__main__":
     greetings()

@@ -6,20 +6,24 @@ from min_lib.utils.helpers import delay
 async def claim_and_transfer(account_info: AccountInfo) -> bool:   
     claimer = Claimer(account_info)
         
-    if await claimer.claim():
+    receipt, amount = await claimer.claim()
+    if receipt: 
         await delay(6, 20)
-        await claimer.transfer() 
+        receipt, amount = await claimer.transfer()        
+    return amount
         
         
 async def claim(account_info: AccountInfo) -> bool:   
     claimer = Claimer(account_info)
         
-    return await claimer.claim()  
+    _, amount = await claimer.claim()
+    return amount
 
 async def transfer(account_info: AccountInfo) -> bool:
     claimer = Claimer(account_info)
         
-    return await claimer.transfer()  
+    _, amount = await claimer.transfer()  
+    return amount
         
         
     
