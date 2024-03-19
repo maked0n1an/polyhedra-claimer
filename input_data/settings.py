@@ -6,10 +6,14 @@ IS_ACCOUNT_NAMES = False
 # Нужно ли мешать кошельки? | Да - 1, Нет - 0
 IS_SHUFFLE_WALLETS = True
 
-DELAY_FROM: int = 100
-DELAY_TO: int = 150
+AMOUNT_WALLETS_IN_BATCH = 10
+
+DELAY_FROM: int = 20
+DELAY_TO: int = 30
 
 AUTH_MESSAGE = f"Claiming Aevo Airdrop {self.address}"
+
+TOKEN_CONTRACT = '0xC71B5F631354BE6853eFe9C3Ab6b9590F8302e81'
 
 ETH_CLAIM_ADDRESS = ''
 BSC_CLAIM_ADDRESS = ''

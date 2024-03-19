@@ -8,7 +8,8 @@ from eth_utils import to_hex
 from input_data.settings import (
     AUTH_MESSAGE,
     ETH_CLAIM_ADDRESS,
-    BSC_CLAIM_ADDRESS
+    BSC_CLAIM_ADDRESS,
+    TOKEN_CONTRACT
 )
 from min_lib.models.accounts import Account
 from min_lib.models.common import TokenAmount
@@ -18,9 +19,9 @@ from min_lib.utils.helpers import retry
 
 
 class Claimer(Account):
-    CLAIM_CONTRACT = {
-        Networks.BSC: BSC_CLAIM_ADDRESS,
-        Networks.Ethereum: ETH_CLAIM_ADDRESS
+    CLAIM_CONTRACTS = {
+        Networks.BSC.name:      BSC_CLAIM_ADDRESS,
+        Networks.Ethereum.name: ETH_CLAIM_ADDRESS
     }
 
     async def _send_request(
@@ -74,7 +75,7 @@ class Claimer(Account):
             data = data['data']['claim']
             amount = TokenAmount(
                 amount=int(data['amount'], 16),
-                set_gwei=True
+                wei=True
             )
             return int(data['index']), amount, data['proof']
 
@@ -107,51 +108,116 @@ class Claimer(Account):
     async def claim(
         self
     ) -> bool:
-        match self.network.name:
-            case Networks.BSC.name:
-                gas_price = 1.5
-            case Networks.Ethereum.name:
-                gas_price = 0.1
+        try:
+            contract = await self.get_contract(
+                token=Web3.to_checksum_address(
+                    self.CLAIM_CONTRACTS[self.network.name]
+                )
+            )
+            gas_price = 0
+            match self.network.name:
+                case Networks.BSC.name:
+                    gas_price = 2
 
-        contract = await self.get_contract(
-            token=self.CLAIM_CONTRACT
-        )
+            index, amount, proof = await self._get_proof()
+            if not amount:
+                return False
 
-        index, amount, proof = await self._get_proof()
-        if not amount:
+            tx_params = TxParams(
+                to=contract.address,
+                data=contract.encodeABI(
+                    'claim',
+                    args=(
+                        index, self.address, amount.Wei, proof
+                    ))
+            )
+            if gas_price:
+                tx_params['gasPrice'] = Web3.to_wei(gas_price, 'gwei')
+
+            tx_hash = await self.sign_and_send(tx_params)
+            receipt = await self.wait_for_tx_receipt(
+                tx_hash,
+                self.web3
+            )
+
+            full_path = self.network.explorer + self.network.TxPath
+
+            if receipt['status']:
+                status = Status.CLAIMED
+                message = f'Successfully claimed: '
+            else:
+                status = Status.ERROR
+                message = f'Failed claim: {amount.Ether} ZK'
+
+            message += (
+                f' in {self.network.name.upper()}: '
+                f'{full_path + tx_hash.hex()}'
+            )
+
+            self.logger.log_message(status=status, message=message)
+
+            return receipt['status'], amount.Ether
+
+        except Exception as e:
+            self.logger.log_message(
+                Status.ERROR, f"{self.network.name.upper()} | Error while claiming: {e}")
+
             return False
 
-        tx_params = TxParams(
-            to=contract.address,
-            data=contract.encodeABI(
-                'claim',
-                args=(
-                    index, self.address, amount, proof
-                ))
-        )
-        if gas_price:
-            tx_params['gasPrice'] = Web3.to_wei(gas_price, 'gwei')
+    async def transfer(
+        self,
+    ) -> bool:
+        try:
+            contract = await self.get_contract(
+                token=self.CLAIM_CONTRACTS[self.network.name]
+            )
+            gas_price = 0
+            match self.network.name:
+                case Networks.BSC.name:
+                    gas_price = 1
 
-        tx_hash = await self.sign_and_send(tx_params)
-        receipt = await self.wait_for_tx_receipt(
-            tx_hash,
-            self.web3
-        )
+            balance = await self.get_balance(
+                token_contract=Web3.to_checksum_address(TOKEN_CONTRACT)
+            )
 
-        full_path = self.network.explorer + self.network.TxPath
+            tx_params = TxParams(
+                to=contract.address,
+                data=contract.encodeABI(
+                    'transfer',
+                    args=(
+                        Web3.to_checksum_address(self.receiver),
+                        balance.Wei
+                    ))
+            )
+            if gas_price:
+                tx_params['gasPrice'] = Web3.to_wei(gas_price, 'gwei')
 
-        if receipt['status']:
-            status = Status.CLAIMED
-            message = f'Successfully claimed: '
-        else:
-            status = Status.ERROR
-            message = f'Failed claim: {amount.Ether} ZK'
+            tx_hash = await self.sign_and_send(tx_params)
+            receipt = await self.wait_for_tx_receipt(
+                tx_hash,
+                self.web3
+            )
 
-        message += (
-            f' from {self.network.name.upper()}: '
-            f'{full_path + tx_hash.hex()}'
-        )
+            full_path = self.network.explorer + self.network.TxPath
 
-        self.logger.log_message(status=status, message=message)
-        
-        return receipt['status']
+            if receipt['status']:
+                status = Status.CLAIMED
+                message = f'Successfully sent {balance.Ether} ZK to {self.receiver}: '
+            else:
+                status = Status.ERROR
+                message = f'Failed sending: {balance.Ether} ZK'
+
+            message += (
+                f' in {self.network.name.upper()}: '
+                f'{full_path + tx_hash.hex()}'
+            )
+
+            self.logger.log_message(status=status, message=message)
+
+            return receipt['status'], balance.Ether
+
+        except Exception as e:
+            self.logger.log_message(
+                Status.ERROR, f"{self.network.name.upper()} | Error while sending: {e}")
+
+            return False

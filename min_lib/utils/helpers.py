@@ -46,7 +46,12 @@ def retry(func):
     return wrapper
 
 
-async def delay(sleep_from: int = DELAY_FROM, sleep_to: int = DELAY_TO, message: str = ""):
+async def delay(
+    sleep_from: 
+    int = DELAY_FROM, 
+    sleep_to: int = DELAY_TO, 
+    message: str = ""
+) -> None:
     delay_secs = random.randint(sleep_from, sleep_to)
     logger.log(Status.DELAY, f"{message} - waiting for {delay_secs}")
     await asyncio.sleep(delay_secs)

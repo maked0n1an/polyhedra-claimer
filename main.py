@@ -7,13 +7,17 @@ from questionary import (
     questionary,
     Choice
 )
-
-from input_data.settings import IS_ACCOUNT_NAMES, IS_SHUFFLE_WALLETS
+from input_data.modules_settings import (
+    claim,
+    claim_and_transfer,
+    transfer,
+)
+from input_data.settings import AMOUNT_WALLETS_IN_BATCH, IS_ACCOUNT_NAMES, IS_SHUFFLE_WALLETS
 from min_lib.models.accounts import AccountInfo
 from min_lib.models.logger import Logger
+from min_lib.models.networks import Networks
 from min_lib.utils.helpers import (
-    center_output,
-    format_input
+    center_output
 )
 from min_lib.utils.config import (
     ACCOUNT_NAMES,
@@ -54,10 +58,23 @@ def greetings():
     center_output(telegram)
 
 
+def measure_time_for_all_work(start_time: float):
+    end_time = round(time.time() - start_time, 2)
+    seconds = round(end_time % 60, 2)
+    minutes = int(end_time // 60) if end_time > 60 else 0
+    hours = int(end_time // 3600) if end_time > 3600 else 0
+
+    logger.info(
+        f"Spent time: "
+        f"{hours} hours {minutes} minutes {seconds} seconds"
+    )
+
+
 def end_of_work():
     exit_label = "========= The bot has ended it's work! ========="
     center_output(exit_label)
     sys.exit()
+
 
 def setup_bot_to_start():
     logger = Logger.setup_logger_for_output()
@@ -81,15 +98,12 @@ def setup_bot_to_start():
     return logger
 
 
-def get_module():
+def get_network():
     result = questionary.select(
-        "Select a method to get started",
+        "Select a network to get started",
         choices=[
-            Choice("1) Claim $ZK and transfer to receivers",
-                   [claim_and_transfer, ]),
-            Choice("2) Claim $ZK", [claim_and_transfer, ]),
-            Choice("3) Transfer $ZK to receivers", ),
-            Choice("3) Exit", "exit"),
+            Choice("1) Binance Smart Chain (BSC)", Networks.BSC),
+            Choice("2) Ethereum (ETH)", Networks.Ethereum)
         ],
         qmark="⚙️ ",
         pointer="✅ "
@@ -101,68 +115,59 @@ def get_module():
     return result
 
 
-async def prepare_task(module, account_model: AccountInfo):
-    if isinstance(module, list):
-        module_function = module[0]
-        return module_function(account_model, *module[1:])
-    elif callable(module):
+def get_module():
+    result = questionary.select(
+        "Select a method to get started",
+        choices=[
+            Choice("1) Claim $ZK and transfer to receivers",
+                   claim_and_transfer),
+            Choice("2) Claim $ZK", claim),
+            Choice("3) Transfer $ZK to receivers", transfer),
+            Choice("4) Exit", "exit"),
+        ],
+        qmark="⚙️ ",
+        pointer="✅ "
+    ).ask()
+    if result == "exit":
+        exit_label = "========= It's all! ========="
+        center_output(exit_label)
+        sys.exit()
+    return result
+
+
+def prepare_task(module, account_model: AccountInfo):
+    if callable(module):
         return module(account_model)
     else:
         raise ValueError("Invalid module format")
 
 
-def measure_time_for_all_work(start_time: float):
-    end_time = round(time.time() - start_time, 2)
-    seconds = round(end_time % 60, 2)
-    minutes = int(end_time // 60) if end_time > 60 else 0
-    hours = int(end_time // 3600) if end_time > 3600 else 0
-
-    logger.info(
-        f"Spent time: "
-        f"{hours} hours {minutes} minutes {seconds} seconds"
-    )
-
-
-async def main(module):
+async def main(module, network):
     accounts = get_accounts()
 
     if IS_SHUFFLE_WALLETS:
         random.shuffle(accounts)
 
+    amount_of_accounts = len(accounts)
+    logger.info(f'Started work on {amount_of_accounts} accounts')
+    batches = [accounts[i:i + AMOUNT_WALLETS_IN_BATCH]
+               for i in range(0, amount_of_accounts, AMOUNT_WALLETS_IN_BATCH)]
     tasks = []
-    for account in accounts:
-        account_model = AccountInfo(
-            account_name=account['name'],
-            private_key=account['private_key'],
-            receiver_wallet=account['receiver']
-        )
 
-        task = prepare_task(module, account_model)
-        task = fetch_data(site, params, account['proxy'], cookies, headers)
-        tasks.append(task)
+    for batch in batches:
+        for account in batch:
+            account_model = AccountInfo(
+                account_name=account['name'],
+                private_key=account['key'],
+                receiver_wallet=account['receiver'],
+                network=network
+            )
+            task = prepare_task(module, account_model)
+            tasks.append(task)
 
-    results = await asyncio.gather(*tasks)
-
-    for account, result in zip(accounts, results):
-        id = str(account['name'])
-        cookies = str(account['cookies'])
-
-        volume = fee = 0
-        if result is None:
-            continue
-
-        for fill_order in result:
-            if fill_order["symbol"] != "USDT_USDC":
-                volume += float(fill_order["quantity"]) * \
-                    float(fill_order["price"])
-
-                if fill_order['side'] == "Bid":
-                    fee += float(fill_order["fee"]) * \
-                        float(fill_order['price'])
-                else:
-                    fee += float(fill_order['fee'])
-        floated_volume = round(volume, 2)
-        floated_fee = round(fee, 2)
+        await asyncio.gather(*tasks)
+        tasks = []
+    logger.success(f'Successfully done for {amount_of_accounts} accounts')
 
 if __name__ == "__main__":
     greetings()
@@ -171,12 +176,13 @@ if __name__ == "__main__":
         end_of_work()
 
     module = get_module()
+    network = get_network()
 
     start_time = time.time()
     logger.info(
         "The bot started to measure time for all work"
     )
 
-    asyncio.run(main(module))
+    asyncio.run(main(module, network))
     measure_time_for_all_work(start_time)
     end_of_work()

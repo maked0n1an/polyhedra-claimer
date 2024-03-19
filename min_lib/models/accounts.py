@@ -1,6 +1,4 @@
-import asyncio
 import random
-from typing import Any
 from hexbytes import (
     HexBytes
 )
@@ -23,7 +21,6 @@ from eth_account.datastructures import (
 )
 
 from min_lib.models.common import TokenAmount
-from min_lib.models.constant_models import Status
 from min_lib.models.logger import Logger
 from min_lib.models.networks import (
     Network,
