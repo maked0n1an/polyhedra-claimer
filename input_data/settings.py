@@ -1,3 +1,19 @@
+# Do you want to use wallet names or generate ID's by program?
+#   Use own names: True
+#   Generate IDs: False
+IS_ACCOUNT_NAMES = False
+
+# Нужно ли мешать кошельки? | Да - 1, Нет - 0
+IS_SHUFFLE_WALLETS = True
+
+DELAY_FROM: int = 100
+DELAY_TO: int = 150
+
+AUTH_MESSAGE = f"Claiming Aevo Airdrop {self.address}"
+
+ETH_CLAIM_ADDRESS = ''
+BSC_CLAIM_ADDRESS = ''
+
 YOUR_RPC: dict[str, dict[str, str]] = {
     'ethereum': [
         'https://mainnet.infura.io/v3/5a38002f5097422f915463007e2a3cdf',
@@ -10,13 +26,7 @@ YOUR_RPC: dict[str, dict[str, str]] = {
         'https://rpc.ankr.com/bsc/84b4a7faad0df9bf76db0aca528ff21d1c5457d37af0445bf806df3a8de9a062',
         'https://rpc.ankr.com/bsc/00e8ed9715664ae8868453878715c9e3c8a15193b1b02df6e65e722d999536aa',
         'https://rpc.ankr.com/bsc/f4e57e2e7cefa90226b56cea4c994115927c8cf3dc044a65ef694045d139939d'
-    ]    
+    ]
 }
 
-# Do you want to use wallet names or generate ID's by program?
-#   Use own names: True
-#   Generate IDs: False
-IS_ACCOUNT_NAMES = False
-
-DELAY_FROM: int = 100
-DELAY_TO: int = 150
+RETRY_COUNT = 3

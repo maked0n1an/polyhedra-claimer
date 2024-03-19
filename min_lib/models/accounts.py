@@ -1,3 +1,4 @@
+import asyncio
 import random
 from typing import Any
 from hexbytes import (
@@ -9,11 +10,11 @@ from web3.types import (
     TxReceipt,
     TxParams,
     _Hash32,
+    Address,
+    ChecksumAddress,
 )
 from web3.eth import AsyncEth
-from web3.contract import Contract
-
-from eth_typing import ChecksumAddress
+from web3.contract import Contract, AsyncContract
 from eth_account import Account as EthAccount
 from eth_account.signers.local import LocalAccount
 from eth_account.datastructures import (
@@ -22,11 +23,13 @@ from eth_account.datastructures import (
 )
 
 from min_lib.models.common import TokenAmount
+from min_lib.models.constant_models import Status
 from min_lib.models.logger import Logger
 from min_lib.models.networks import (
     Network,
     Networks
 )
+from min_lib.utils.config import TOKEN_ABI
 
 
 class AccountInfo:
@@ -62,13 +65,6 @@ class Account:
         self.address = self.account.address
         self.logger = Logger(self.account_info.id, self.account.address)
 
-    def get_contract(self, contract_address: ChecksumAddress | str, abi: Any) -> Contract:
-        contract_address = Web3.to_checksum_address(contract_address)
-
-        contract = self.web3.eth.contract(address=contract_address, abi=abi)
-
-        return contract
-
     def sign_transaction(self, tx_params: TxParams) -> SignedTransaction:
         signed_tx = self.account.sign_transaction(
             transaction_dict=tx_params
@@ -82,6 +78,24 @@ class Account:
         )
 
         return signed_message
+
+    async def get_contract(
+        self,
+        token: AsyncContract | Contract | ChecksumAddress | str
+    ) -> AsyncContract | Contract:
+        address = Web3.to_checksum_address(token.address)
+
+        if token.abi:
+            abi = token.abi
+
+        else:
+            abi = TOKEN_ABI
+
+        contract = self.web3.eth.contract(
+            address=address, abi=abi
+        )
+
+        return contract
 
     async def get_nonce(self, address: ChecksumAddress | None = None) -> int:
         if not address:
@@ -168,13 +182,22 @@ class Account:
         tx_hash = await self.web3.eth.send_raw_transaction(transaction=signed_tx.rawTransaction)
 
         return tx_hash
-    
-    async def get_balance(self, address_contract) -> int:
-        contract = self.get_contract(address_contract, abi=token_abi)
-        try:
-            balance = await contract.functions.balanceOf(self.address).call()
-            return balance
-        except Exception as e:
-            logger.error(f'{self.acc_info} - {e}')
-            await asyncio.sleep(1)
-            return await self.get_balance(address_contract)
+
+    async def get_balance(
+        self,
+        token_contract: Contract | ChecksumAddress | Address | None = None
+    ) -> TokenAmount:
+        if token_contract:
+            contract = await self.get_contract(token=token_contract)
+            decimals = await contract.functions.decimals().call()
+            amount = await contract.functions.balanceOf().call()
+
+        else:
+            amount = await self.web3.eth.get_balance(account=self.account.address)
+            decimals = self.network.decimals
+
+        return TokenAmount(
+            amount=amount,
+            decimals=decimals,
+            wei=True
+        )
