@@ -1,30 +1,40 @@
 from min_lib.models.claimer import Claimer
+from min_lib.models.constant_models import Status
 from min_lib.utils.helpers import delay
 
 
 async def check(account_info) -> bool:
     claimer = Claimer(account_info)
 
-    amount = await claimer._check_eligible()
+    result = await claimer._check_eligible()
 
-    return amount
+    if result:
+        _, amount, _ = result
+        
+        return amount.Ether
+    else:
+        return 0
 
 
 async def claim_and_transfer(account_info) -> bool:
     claimer = Claimer(account_info)
 
-    receipt, amount = await claimer.claim()
-    if receipt:
-        await delay(6, 15)
-        receipt, amount = await claimer.transfer()
+    result = await claimer.claim()
+    if receipt:        
+        receipt, amount = result
+        await delay(10, 20)
+        (receipt, amount) = await claimer.transfer()
     return amount
 
 
 async def claim(account_info) -> bool:
     claimer = Claimer(account_info)
 
-    _, amount = await claimer.claim()
-    return amount
+    result = await claimer.claim()
+    if result:
+        _, amount = result
+    
+    return amount or 0
 
 
 async def transfer(account_info) -> bool:

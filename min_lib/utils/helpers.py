@@ -22,10 +22,12 @@ def format_input(message: str) -> str:
 
     return value
 
+
 def read_txt(filepath: Path | str):
     with open(filepath, 'r') as file:
         return [row.strip() for row in file]
-    
+
+
 def load_json(filepath: Path | str):
     with open(filepath, 'r') as file:
         return json.load(file)
@@ -47,9 +49,9 @@ def retry(func):
 
 
 async def delay(
-    sleep_from: 
-    int = DELAY_FROM, 
-    sleep_to: int = DELAY_TO, 
+    sleep_from:
+    int = DELAY_FROM,
+    sleep_to: int = DELAY_TO,
     message: str = ""
 ) -> None:
     delay_secs = random.randint(sleep_from, sleep_to)

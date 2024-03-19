@@ -6,7 +6,7 @@ IS_ACCOUNT_NAMES = False
 # Нужно ли мешать кошельки? | Да - 1, Нет - 0
 IS_SHUFFLE_WALLETS = True
 
-AMOUNT_WALLETS_IN_BATCH = 1
+AMOUNT_WALLETS_IN_BATCH = 10
 
 DELAY_FROM: int = 20
 DELAY_TO: int = 30
@@ -15,8 +15,10 @@ AUTH_MESSAGE = ''
 
 TOKEN_CONTRACT = '0xC71B5F631354BE6853eFe9C3Ab6b9590F8302e81'
 
-ETH_CLAIM_ADDRESS = ''
-BSC_CLAIM_ADDRESS = ''
+CLAIM_ADDRESSES = {
+    'ethereum': '0x9234f83473C03be04358afC3497d6293B2203288',
+    'bsc':      '0x9234f83473C03be04358afC3497d6293B2203288'
+}
 
 YOUR_RPC: dict[str, dict[str, str]] = {
     'ethereum': [

@@ -1,4 +1,5 @@
 import random
+from typing import Any
 from hexbytes import (
     HexBytes
 )
@@ -27,7 +28,7 @@ from min_lib.models.networks import (
     Network,
     Networks
 )
-from min_lib.utils.config import TOKEN_ABI
+from min_lib.utils.config import CLAIM_ABI, TOKEN_ABI
 
 
 
@@ -67,15 +68,10 @@ class Account:
 
     async def get_contract(
         self,
-        token: AsyncContract | Contract | ChecksumAddress | str
+        token: str,
+        abi: Any = TOKEN_ABI
     ) -> AsyncContract | Contract:
-        address = Web3.to_checksum_address(token.address)
-
-        if token.abi:
-            abi = token.abi
-
-        else:
-            abi = TOKEN_ABI
+        address = Web3.to_checksum_address(token)
 
         contract = self.web3.eth.contract(
             address=address, abi=abi
@@ -164,7 +160,7 @@ class Account:
 
     async def sign_and_send(self, tx_params: TxParams) -> HexBytes:
         tx_params = await self.auto_add_params(tx_params)
-        signed_tx = await self.sign_transaction(tx_params)
+        signed_tx = self.sign_transaction(tx_params)
         tx_hash = await self.web3.eth.send_raw_transaction(transaction=signed_tx.rawTransaction)
 
         return tx_hash
@@ -176,7 +172,7 @@ class Account:
         if token_contract:
             contract = await self.get_contract(token=token_contract)
             decimals = await contract.functions.decimals().call()
-            amount = await contract.functions.balanceOf().call()
+            amount = await contract.functions.balanceOf(token_contract).call()
 
         else:
             amount = await self.web3.eth.get_balance(account=self.account.address)

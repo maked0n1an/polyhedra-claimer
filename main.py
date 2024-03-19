@@ -156,7 +156,7 @@ async def main(module, network):
                for i in range(0, amount_of_accounts, AMOUNT_WALLETS_IN_BATCH)]
     tasks = []
 
-    total_gotten_tokens = 0.0
+    total_gotten_tokens = 0
     for batch in batches:
         for account in batch:
             account_model = AccountInfo(
