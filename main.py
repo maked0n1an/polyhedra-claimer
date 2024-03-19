@@ -7,13 +7,14 @@ from questionary import (
     questionary,
     Choice
 )
-from input_data.modules_settings import (
+from min_lib.modules_settings import (
     claim,
-    claim_and_transfer,
-    transfer,
+    check,
+    claim_and_transfer, 
+    transfer
 )
 from input_data.settings import AMOUNT_WALLETS_IN_BATCH, IS_ACCOUNT_NAMES, IS_SHUFFLE_WALLETS
-from min_lib.models.accounts import AccountInfo
+from min_lib.models.account_info import AccountInfo
 from min_lib.models.logger import Logger
 from min_lib.models.networks import Networks
 from min_lib.utils.helpers import (
@@ -119,6 +120,7 @@ def get_module():
     result = questionary.select(
         "Select a method to get started",
         choices=[
+            Choice("1) Check $ZK for claim", check),
             Choice("1) Claim $ZK and transfer to receivers",
                    claim_and_transfer),
             Choice("2) Claim $ZK", claim),
@@ -169,10 +171,11 @@ async def main(module, network):
         results = await asyncio.gather(*tasks)
         for result in results:
             total_gotten_tokens += result
-        
+
         tasks = []
-        
-    logger.success(f'Successfully done for {amount_of_accounts} accounts | claimed: {total_gotten_tokens}')
+
+    logger.success(
+        f'Successfully done for {amount_of_accounts} accounts | claimed: {total_gotten_tokens}')
 
 if __name__ == "__main__":
     greetings()
@@ -180,8 +183,8 @@ if __name__ == "__main__":
     if not logger:
         end_of_work()
 
-    module = get_module()
     network = get_network()
+    module = get_module()
 
     start_time = time.time()
     logger.info(

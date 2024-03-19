@@ -3,7 +3,7 @@ import json
 import random
 from pathlib import Path
 
-from main import logger
+from min_lib.models.logger import logger
 from input_data.settings import (
     DELAY_FROM,
     DELAY_TO,

@@ -1,4 +1,5 @@
 import aiohttp
+import json
 
 from web3 import Web3
 from web3.types import TxParams
@@ -48,6 +49,40 @@ class Claimer(Account):
                 message=f"An error while sending request: {e}"
             )
             return False
+        
+    async def _check_eligible(self) -> bool:
+        try:
+            addr_prefix = str(self.account.address).lower()[2:5]
+            
+            if self.network.name == Networks.Ethereum.name:
+                url=f"https://pub-88646eee386a4ddb840cfb05e7a8d8a5.r2.dev/eth_data/{addr_prefix}.json"
+            else:
+                url=f"https://pub-88646eee386a4ddb840cfb05e7a8d8a5.r2.dev/bsc_data/{addr_prefix}.json"            
+            
+            response = await self._send_request(
+                method='GET',
+                url=url
+            )
+            if response is None:
+                return 0
+            else:
+                amount = TokenAmount(
+                    amount=int(str(response[self.account.address]['amount']), 16),
+                    wei=True
+                )
+                
+                self.logger.log_message(
+                    Status.SUCCESS,
+                    f'Found {amount.Ether} available for claim!'  
+                )
+                
+                return float(amount.Ether)
+        except Exception as e:
+            self.logger.log_message(
+                status=Status.ERROR,
+                message=f"An error while checking for eligibility: {e}"
+            )
+            return False
 
     async def _get_proof(self) -> tuple[str, TokenAmount, str]:
         try:
@@ -86,23 +121,7 @@ class Claimer(Account):
             )
             return
 
-    async def _check_eligible(self) -> bool:
-        try:
-            data = await self._send_request(
-                method='GET',
-                url='https://api-ribbon.vercel.app/api/aevo/check-eligibility',
-                params={
-                    'address': self.address
-                }
-            )
-
-            return data['airdrop']
-        except Exception as e:
-            self.logger.log_message(
-                status=Status.ERROR,
-                message=f"An error while checking for eligibility: {e}"
-            )
-            return False
+    
 
     @retry
     async def claim(
@@ -114,10 +133,6 @@ class Claimer(Account):
                     self.CLAIM_CONTRACTS[self.network.name]
                 )
             )
-            gas_price = 0
-            match self.network.name:
-                case Networks.BSC.name:
-                    gas_price = 2
 
             index, amount, proof = await self._get_proof()
             if not amount:
@@ -156,7 +171,7 @@ class Claimer(Account):
 
             self.logger.log_message(status=status, message=message)
 
-            return receipt['status'], amount.Ether
+            return receipt['status'], float(amount.Ether)
 
         except Exception as e:
             self.logger.log_message(
@@ -214,7 +229,7 @@ class Claimer(Account):
 
             self.logger.log_message(status=status, message=message)
 
-            return receipt['status'], balance.Ether
+            return receipt['status'], float(balance.Ether)
 
         except Exception as e:
             self.logger.log_message(

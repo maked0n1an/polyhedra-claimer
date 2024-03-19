@@ -20,6 +20,7 @@ from eth_account.datastructures import (
     SignedMessage
 )
 
+from min_lib.models.account_info import AccountInfo
 from min_lib.models.common import TokenAmount
 from min_lib.models.logger import Logger
 from min_lib.models.networks import (
@@ -29,18 +30,6 @@ from min_lib.models.networks import (
 from min_lib.utils.config import TOKEN_ABI
 
 
-class AccountInfo:
-    def __init__(
-        self,
-        account_name: str | int,
-        private_key: str,
-        receiver_wallet: str,
-        network: Network | None = Networks.BSC
-    ) -> None:
-        self.id = str(account_name)
-        self.private_key = private_key
-        self.receiver = receiver_wallet
-        self.network = network
 
 
 class Account:
