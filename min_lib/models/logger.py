@@ -6,14 +6,15 @@ from min_lib.models.constant_models import Status
 
 
 class Logger:
-    def __init__(self, id: str, address: str):
+    def __init__(self, id: str, address: str, network: str):
         self.id = id
         self.address = address[:6] + "..." + address[-4:]
+        self.network = network.capitalize()
         self.logger = logger
 
     def log_message(self, status: str, message: str):
         self.logger.log(
-            status, f"{self.id: <8} | {self.address} | {message}"
+            status, f"{self.id: <8} | {self.address} | {self.network} | {message}"
         )
 
     @classmethod
