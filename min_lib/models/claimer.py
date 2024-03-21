@@ -42,7 +42,7 @@ class Claimer(Account):
             )
             return False
 
-    async def _check_eligible(self) -> Optional[tuple[int, TokenAmount, List[str]]]:
+    async def _check_eligible(self) -> tuple[int, TokenAmount, List[str]] | bool:
         try:
             addr_prefix = str(self.account.address).lower()[2:5]
 
@@ -88,7 +88,7 @@ class Claimer(Account):
 
     async def claim(
         self
-    ) -> Optional[tuple[bool, float]]:
+    ) -> tuple[bool, float]:
         try:
             contract = await self.get_contract(
                 token=CLAIM_ADDRESSES[self.network.name],
@@ -110,7 +110,8 @@ class Claimer(Account):
                 data=contract.encodeABI(
                     'claim',
                     args=(index, self.address, amount.Wei, proof)
-                )
+                ),
+                gas=60000
             )
             if gas_price:
                 tx_params['gasPrice'] = Web3.to_wei(gas_price, 'gwei')
@@ -143,12 +144,12 @@ class Claimer(Account):
             error = str(e)
             if '0x646cf558' in error:
                 self.logger.log_message(
-                    Status.ERROR, f"{self.network.name.upper()} - has been claimed"
+                    Status.ERROR, f"Has been claimed"
                 )                
                 return True, float(amount.Ether)
             else:
                 self.logger.log_message(
-                    Status.ERROR, f"{self.network.name.upper()} | Error while claiming: {e}"
+                    Status.ERROR, f"Error while claiming: {e}"
                 )                
                 return False, 0
 
@@ -196,10 +197,7 @@ class Claimer(Account):
                 status = Status.ERROR
                 message = f'Failed sending {balance.Ether} ZK'
 
-            message += (
-                f' in {self.network.name.upper()}: '
-                f'{full_path + tx_hash.hex()}'
-            )
+            message += f': {full_path + tx_hash.hex()}'
 
             self.logger.log_message(status=status, message=message)
 
@@ -207,6 +205,6 @@ class Claimer(Account):
 
         except Exception as e:
             self.logger.log_message(
-                Status.ERROR, f"{self.network.name.upper()} | Error while sending: {e}")
+                Status.ERROR, f"Error while sending: {e}")
 
-            return False
+            return False, 0

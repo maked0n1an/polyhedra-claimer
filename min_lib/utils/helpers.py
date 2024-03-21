@@ -49,8 +49,7 @@ def retry(func):
 
 
 async def delay(
-    sleep_from:
-    int = DELAY_FROM,
+    sleep_from: int = DELAY_FROM,
     sleep_to: int = DELAY_TO,
     message: str = ""
 ) -> None:

@@ -24,11 +24,7 @@ from eth_account.datastructures import (
 from min_lib.models.account_info import AccountInfo
 from min_lib.models.common import TokenAmount
 from min_lib.models.logger import Logger
-from min_lib.models.networks import (
-    Network,
-    Networks
-)
-from min_lib.utils.config import CLAIM_ABI, TOKEN_ABI
+from min_lib.utils.config import TOKEN_ABI
 
 
 
@@ -50,7 +46,11 @@ class Account:
             account_info.private_key
         )
         self.address = self.account.address
-        self.logger = Logger(self.account_info.id, self.account.address)
+        self.logger = Logger(
+            self.account_info.id, 
+            self.account.address,
+            self.network.name
+        )
 
     def sign_transaction(self, tx_params: TxParams) -> SignedTransaction:
         signed_tx = self.account.sign_transaction(

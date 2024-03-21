@@ -10,7 +10,7 @@ from questionary import (
 from min_lib.modules_settings import (
     claim,
     check,
-    claim_and_transfer, 
+    claim_and_transfer,
     transfer
 )
 from input_data.settings import AMOUNT_WALLETS_IN_BATCH, IS_ACCOUNT_NAMES, IS_SHUFFLE_WALLETS
@@ -92,7 +92,7 @@ def setup_bot_to_start():
         return end_bot
     if len(PRIVATE_KEYS) != len(ACCOUNT_NAMES) and IS_ACCOUNT_NAMES:
         logger.error(
-            "The account names' amount must be equal to cookies' amount"
+            "The account names' amount must be equal to private keys' amount"
         )
         return end_bot
 
@@ -174,8 +174,9 @@ async def main(module, network):
 
         tasks = []
 
-    logger.success(
-        f'Successfully done for {amount_of_accounts} accounts | claimed: {total_gotten_tokens}')
+    logger.info(
+        f'Successfully done for {amount_of_accounts} accounts | total coins: {total_gotten_tokens}'
+    )
 
 if __name__ == "__main__":
     greetings()
